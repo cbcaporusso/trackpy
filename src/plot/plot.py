@@ -3,10 +3,12 @@ sys.path.append('/gpfs/projects/ub35/demian/chiral')
 
 import numpy as np
 import matplotlib.pyplot as plt
-import src.box as box
 import subprocess
+from src.traj.box import Box
 from matplotlib.collections import EllipseCollection
 from glob import glob
+
+LJ_TIMESTEP = 0.01
 
 # TODO: use setuptools to install the package and import it
 
@@ -46,24 +48,24 @@ def plot_configuration(N, temp, omega, rho, time='last', save=False,
     """
     # Load the data.
 
-    file_path=f"N_{N}/sigma_5.0/omega_{omega}/T_{temp}/rho_{rho:.3f}_1"
-    print(file_path)
+    rho = f"{rho:.3f}"
+
+    file_path=f"N_{N}/sigma_5.0/omega_{omega}/T_{temp}/rho_{rho}_1"
 
     if time == 'last':
-        #print(glob(f"{file_path}/Trj/xyz.dump.*"))
         time = max([int(f.split('.')[-1]) for f in glob(f"{file_path}/Trj/xyz.dump.*")])   
-        print(time)
-        #exit()
+
+    print("Elaborating image at time: ", time)
 
     if not isinstance(time, int) and time != 'last':
         raise ValueError("time must be an integer or 'last'")
 
-    sim_box = box.Box() 
+    sim_box = Box() 
     sim_box.read_box_size_from_file(f"{file_path}/Trj/xyz.dump.{time}")
 
     if not os.path.exists(f"{file_path}/local_hexatic/xyz.dump.{time}.hexatic"):
         print("No hexatic data found for the specified time, computing now...")
-        subprocess.run(["bash", "/gpfs/projects/ub35/demian/chiral/elaborate.bash", f"{N}", f"{temp}", f"{omega}", f"{rho:.3f}", f"{time}"])
+        compute_local_hexatic(file_path, time)
         
     data = np.loadtxt(f"{file_path}/local_hexatic/xyz.dump.{time}.hexatic")
     
@@ -74,39 +76,115 @@ def plot_configuration(N, temp, omega, rho, time='last', save=False,
 
     # Plot the data.
     fig, ax = plt.subplots(figsize=figsize)
-    ec = add_hexatic_collection(pos, hex_args, ax)
-
-    shrink_factor = 0.5
-
-    ax.set_xlim(0, sim_box.lx * shrink_factor) 
-    ax.set_ylim(0, sim_box.ly * shrink_factor)
+    set_lim(ax, sim_box)
+    ec = add_coloured_collection(pos, hex_args, ax)
     
     if print_params:
-        ax.text(0.05, 0.95, f"$N = {N}, \\rho = {rho}, \\omega = {omega}, T = {temp}$", transform=ax.transAxes)
+        plot_params(ax, N, temp, omega, rho, time)
 
     # check if save is True or a string
     if save:
         if isinstance(save, str):
             fig.save(save)
         else:
-            out_dir = f"snapshots/N_{N}/sigma_5.0/omega_{omega}/T_{temp}/rho_{rho:.3f}"
+            out_dir = f"snapshots/N_{N}/sigma_5.0/omega_{omega}/T_{temp}/rho_{rho}/hexatic"
             os.makedirs(out_dir, exist_ok=True)
-            fig.savefig(f"{file_path}/local_hexatic/xyz.dump.{time}.hexatic.png", dpi=300, bbox_inches='tight')
+            fig.savefig(f"{out_dir}/xyz.dump.{time}.png",
+                        dpi=300, bbox_inches='tight')
 
     return fig, ax
 
-def plot_slab_configuration(temp, omega, rho):
+def plot_slab_configuration(temp, omega, rho, time='last', 
+                            hexatic=False, dspl=None,
+                            save=False, print_params=False):
     """
     Plot the configuration of a slab of the system at a given time.
+    
+    Parameters
+    ----------
+    temp : float
+        Temperature of the system.
+    omega : float
+        Frequency of the chiral force.
+    rho : float
+        Density of the system.
+    time : int, optional    
+        Time at which to plot the configuration. If 'last' (default),
+        the last time step is used.
+    save : str or bool, optional
+        If False (default) do not save a png of the configuration.
+        If True, save the plot to the default file location. If a string,
+        save the plot to the specified file location.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The figure object.  
+    ax : matplotlib.axes.Axes
+        The axes object.
+
     """
 
-    file_path=f"sub_projects/slab/sintetic_slab_pressure/T_{temp}/omega_{omega}/rho_{rho:.3f}_1"
+    rho = f"{rho:.3f}"
+
+    file_path=f"sub_projects/slab/sintetic_slab_pressure/T_{temp}/omega_{omega}/rho_{rho}_1"
+
+    if time == 'last':
+        # print(f"{file_path}/Trj/")
+        # print(glob(f"{file_path}/Trj/xyz.dump.*"))
+        time = max([int(f.split('.')[-1]) for f in glob(f"{file_path}/Trj/xyz.dump.*")])   
+
+    print("Elaborating image at time: ", time)
+    
+    sim_box = Box()
+    sim_box.read_box_size_from_file(f"{file_path}/Trj/xyz.dump.{time}")
 
     size_ratio = sim_box.lx / sim_box.ly
 
+    fig, ax = plt.subplots(figsize=(2.0,2.0/size_ratio))
+
+    if hexatic:
+        if dspl is not None:
+            raise ValueError("Cannot plot hexatic and displacement at the same time")
+
+        if not os.path.exists(f"{file_path}/local_hexatic/xyz.dump.{time}.hexatic"):
+            print("No hexatic data found for the specified time, computing now...")
+            compute_local_hexatic(f"{file_path}", time)
+        data = np.loadtxt(f"{file_path}/local_hexatic/xyz.dump.{time}.hexatic")
+        pos         = data[:,[1,2]]
+        psi6_re     = data[:,4]
+        psi6_im     = data[:,5]
+        hex_args    = np.arctan2(psi6_im,psi6_re)
+        ec = add_coloured_collection(pos, hex_args, ax)
+    
+    else:
+        if not os.path.exists(f"{file_path}/Dspl_dt_{dspl}/xyz.dump.{time}.dspl"):
+            raise FileNotFoundError("No dspl data found for the specified time")
+
+        data = np.loadtxt(f"{file_path}/Dspl_dt_{dspl}/xyz.dump.{time}.dspl")
+        pos = data[:,[1,2]]
+        dspl_mod = np.sqrt(data[:,3]**2 + data[:,4]**2)
+        ec = add_coloured_collection(pos, dspl_mod, ax)
+
+    set_lim(ax, sim_box)
+
+    if print_params:
+        plot_params(ax, '', temp, omega, rho, time)
+
+    if save:
+        if isinstance(save, str):
+            fig.save(save)
+        else:
+            if hexatic:
+                out_dir = f"snapshots/slab/T_{temp}/omega_{omega}/rho_{rho}/hexatic"
+            else:
+                out_dir = f"snapshots/slab/T_{temp}/omega_{omega}/rho_{rho}/displ"
+            os.makedirs(out_dir, exist_ok=True)
+            fig.savefig(f"{out_dir}/xyz.dump.{time}.png", dpi=300, bbox_inches='tight')
+
     return fig, ax 
 
-def add_hexatic_collection(pos, hex_args, ax):
+def add_coloured_collection(pos, cmap, ax):
     """
     Add a hexatic collection to the axes.
 
@@ -114,8 +192,8 @@ def add_hexatic_collection(pos, hex_args, ax):
     ----------
     pos : numpy.ndarray
         The positions of the particles.
-    hex_args : numpy.ndarray
-        The hexatic arguments of the particles.
+    cmap : numpy.ndarray
+        The array which will be converted to a colour map.
     ax : matplotlib.axes.Axes
         The axes object.
 
@@ -137,10 +215,72 @@ def add_hexatic_collection(pos, hex_args, ax):
 
     ec.set_alpha(0.50)
     ec.set_cmap('hsv')
-    ec.set_array(hex_args)
+    ec.set_array(cmap)
     ax.add_collection(ec)
     
     return ec
 
+def set_lim(ax, box: Box, shrink=0.0):
+    """
+    Set the limits of the axes.
+
+    Parameters
+    ----------
+    box : box.Box
+        The box object.
+    ax : matplotlib.axes.Axes
+        The axes object.
+    shrink : float, optional
+        The amount to shrink the axes by. Default is 0.05.
+
+    Returns
+    -------
+    None
+
+    """
+
+    ax.set_xlim(0.0 + shrink * box.lx, box.lx - shrink * box.lx)
+    ax.set_ylim(0.0 + shrink * box.ly, box.ly - shrink * box.ly)
+
+
+def compute_local_hexatic(file_path, time):
+    """
+    Compute the local hexatic order parameter for a given time, calling an external bash script.
+
+    Parameters
+    ----------
+    N : int
+        Number of particles in the system.
+    temp : float
+        Temperature of the system.
+    omega : float
+        Frequency of the chiral force.
+    rho : float 
+        Density of the system.
+    time : int  
+        Time at which to compute the local hexatic order parameter.
+
+    Returns
+    -------
+    None
+
+    """
+    process_status = subprocess.run(["/gpfs/projects/ub35/demian/chiral/elaborate.sh", file_path, str(time)])
+    return process_status
+
+def compute_coarsegrained_displacement():
+    raise NotImplementedError
+
+def plot_params(ax, N, temp, omega, rho, time):
+    ax.text(0.05, 0.92, 
+        f"$N = {N}, \\rho = {rho}, \\omega = {omega}, T = {temp}$",
+        transform=ax.transAxes, fontsize=5)
+    ax.text(0.05, 0.08,
+        f"$t = {int(time * LJ_TIMESTEP)}$",
+        transform=ax.transAxes, fontsize=5)
+
+
+
 if __name__ == "__main__":
-    plot_configuration(262144, 0.35, 3.0, 0.700, time='last', save=True, figsize=(2.0,2.0), print_params=True)
+    # plot_configuration(262144, 0.35, 3.0, 0.700, time=30_000_000, save=True, figsize=(2.0,2.0), print_params=True)
+    plot_slab_configuration(0.35, 3.0, 0.324, time='last', save=True, print_params=True, hexatic=False)
