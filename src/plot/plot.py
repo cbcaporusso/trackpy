@@ -15,6 +15,8 @@ LJ_TIMESTEP = 0.01
 
 # TODO: use setuptools to install the package and import it
 
+
+# TODO add all the mode and hexatic part
 def plot_configuration(N, temp, omega, rho, time='last', save=False, 
                     figsize=(2.0,2.0), print_params=False):
     """
@@ -136,70 +138,11 @@ def plot_configuration_from_path(file_path, savedir, time='last',
         The axes object.
     """
 
-    if time == 'last':  
-        time = max([int(f.split('.')[-1]) for f in glob(f"{file_path}/Trj/xyz.dump.*")])
-    elif time < 0:
-        time_array = sorted([int(f.split('.')[-1]) for f in glob(f"{file_path}/Trj/xyz.dump.*")])[time:]
-        for t in time_array:
-            iter_fig, iter_ax = plot_configuration_from_path(file_path, savedir, t, mode, figsize, print_params)
-            if t == time_array[-1]:
-                return iter_fig, iter_ax
-            plt.close(iter_fig)
-        
-    print("Elaborating image at time: ", time)
-
-    if not isinstance(time, int) and time != 'last':
-        raise ValueError("time must be an integer or 'last'")
-
-    sim_box = Box()
-    sim_box.read_box_size_from_file(f"{file_path}/Trj/xyz.dump.{time}")
-
-    fig, ax = plt.subplots(figsize=figsize)
-
-    if mode == 'hexatic':
-            
-            if not os.path.exists(f"{file_path}/local_hexatic/xyz.dump.{time}.hexatic"):
-                print("No hexatic data found for the specified time, computing now...")
-                compute_local_hexatic(file_path, time)
-        
-            data = np.loadtxt(f"{file_path}/local_hexatic/xyz.dump.{time}.hexatic")
-    
-            pos         = data[:,[1,2]]
-            psi6_re     = data[:,4]
-            psi6_im     = data[:,5]
-            hex_args    = np.arctan2(psi6_im,psi6_re)
-    
-            # Plot the data.
-            ec = add_coloured_collection(pos, hex_args, ax)
-    
-    elif mode == 'density':
-            
-            try:
-                data = np.loadtxt(f"{file_path}/Trj/xyz.dump.{time}", skiprows=9)
-            except IOError:
-                print("No data found for the specified time")
-    
-            pos = data[:,[1,2]]
-            ec = add_coloured_collection(pos, np.ones(len(pos)), ax)
-
-    set_lim(ax, sim_box)
-
     N, temp, omega, rho = extract_params_from_path(file_path)
-    if print_params:
-        plot_params(ax, N, temp, omega, rho, time)
+    # TODO add a better file saving system
+    outdir = f"{savedir}/N_{N}/sigma_5.0/omega_{omega}/T_{temp}/rho_{rho}"
+    fig, ax = plot_configuration(N, temp, omega, rho, time, savedir, figsize, print_params)
 
-    if isinstance(savedir, str):
-        if mode == 'hexatic':
-            out_dir = f"snapshots/{savedir}/N_{N}/sigma_5.0/omega_{omega}/T_{temp}/rho_{rho}/hexatic"
-        elif mode == 'density':
-            out_dir = f"snapshots/{savedir}/N_{N}/sigma_5.0/omega_{omega}/T_{temp}/rho_{rho}/density"
-        os.makedirs(out_dir, exist_ok=True)
-        fig.savefig(f"{out_dir}/xyz.dump.{time}.png",
-                    dpi=300, bbox_inches='tight')
-    else:
-        raise ValueError("savedir must be a string")
-    
-    return fig, ax
 
 def plot_slab_configuration(temp, omega, rho, time='last', 
                             hexatic=False, dspl=None,
