@@ -1,11 +1,14 @@
-import sys, os
+# import 
+
+import sys, os, subprocess
 sys.path.append('/gpfs/projects/ub35/demian/chiral')
 
 import numpy as np
 import matplotlib.pyplot as plt
-import subprocess
+
 from src.traj.box import Box
 from matplotlib.collections import EllipseCollection
+from typing import Tuple
 from glob import glob
 
 LJ_TIMESTEP = 0.01
@@ -54,6 +57,13 @@ def plot_configuration(N, temp, omega, rho, time='last', save=False,
 
     if time == 'last':
         time = max([int(f.split('.')[-1]) for f in glob(f"{file_path}/Trj/xyz.dump.*")])   
+    elif time < 0:
+        time_array = sorted([int(f.split('.')[-1]) for f in glob(f"{file_path}/Trj/xyz.dump.*")])[time:]
+        for t in time_array:
+            iter_fig, iter_ax = plot_configuration(N, temp, omega, rho, t, save, figsize, print_params)
+            if t == time_array[-1]:
+                return iter_fig, iter_ax
+            plt.close(iter_fig)
 
     print("Elaborating image at time: ", time)
 
@@ -94,6 +104,103 @@ def plot_configuration(N, temp, omega, rho, time='last', save=False,
 
     return fig, ax
 
+
+def plot_configuration_from_path(file_path, savedir, time='last',  
+                    mode='hexatic', figsize=(2.0,2.0), print_params=False):
+    """
+    Plot the configuration of the system at a given time.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the simulation data.
+    time : int, optional
+        Time at which to plot the configuration. If 'last' (default),
+        the last time step is used.
+    save : str or bool, optional
+        If False (default) do not save a png of the configuration.
+        If True, save the plot to the default file location. If a string,
+        save the plot to the specified file location.
+    mode : str, optional
+        The mode of the plot. Can be 'hexatic' (default) or 'density' TODO
+    figsize : tuple, optional
+        The size of the figure in inches. Default is (2.0,2.0).
+    print_params : bool, optional
+        If True, print the parameters of the simulation in the plot. Default is False.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The figure object.
+    ax : matplotlib.axes.Axes
+        The axes object.
+    """
+
+    if time == 'last':  
+        time = max([int(f.split('.')[-1]) for f in glob(f"{file_path}/Trj/xyz.dump.*")])
+    elif time < 0:
+        time_array = sorted([int(f.split('.')[-1]) for f in glob(f"{file_path}/Trj/xyz.dump.*")])[time:]
+        for t in time_array:
+            iter_fig, iter_ax = plot_configuration_from_path(file_path, savedir, t, mode, figsize, print_params)
+            if t == time_array[-1]:
+                return iter_fig, iter_ax
+            plt.close(iter_fig)
+        
+    print("Elaborating image at time: ", time)
+
+    if not isinstance(time, int) and time != 'last':
+        raise ValueError("time must be an integer or 'last'")
+
+    sim_box = Box()
+    sim_box.read_box_size_from_file(f"{file_path}/Trj/xyz.dump.{time}")
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    if mode == 'hexatic':
+            
+            if not os.path.exists(f"{file_path}/local_hexatic/xyz.dump.{time}.hexatic"):
+                print("No hexatic data found for the specified time, computing now...")
+                compute_local_hexatic(file_path, time)
+        
+            data = np.loadtxt(f"{file_path}/local_hexatic/xyz.dump.{time}.hexatic")
+    
+            pos         = data[:,[1,2]]
+            psi6_re     = data[:,4]
+            psi6_im     = data[:,5]
+            hex_args    = np.arctan2(psi6_im,psi6_re)
+    
+            # Plot the data.
+            ec = add_coloured_collection(pos, hex_args, ax)
+    
+    elif mode == 'density':
+            
+            try:
+                data = np.loadtxt(f"{file_path}/Trj/xyz.dump.{time}", skiprows=9)
+            except IOError:
+                print("No data found for the specified time")
+    
+            pos = data[:,[1,2]]
+            ec = add_coloured_collection(pos, np.ones(len(pos)), ax)
+
+    set_lim(ax, sim_box)
+
+    N, temp, omega, rho = extract_params_from_path(file_path)
+    if print_params:
+        plot_params(ax, N, temp, omega, rho, time)
+
+    if isinstance(savedir, str):
+        if mode == 'hexatic':
+            out_dir = f"snapshots/{savedir}/N_{N}/sigma_5.0/omega_{omega}/T_{temp}/rho_{rho}/hexatic"
+        elif mode == 'density':
+            out_dir = f"snapshots/{savedir}/N_{N}/sigma_5.0/omega_{omega}/T_{temp}/rho_{rho}/density"
+        os.makedirs(out_dir, exist_ok=True)
+        fig.savefig(f"{out_dir}/xyz.dump.{time}.png",
+                    dpi=300, bbox_inches='tight')
+    else:
+        raise ValueError("savedir must be a string")
+    
+    return fig, ax
+
 def plot_slab_configuration(temp, omega, rho, time='last', 
                             hexatic=False, dspl=None,
                             save=False, print_params=False):
@@ -130,10 +237,15 @@ def plot_slab_configuration(temp, omega, rho, time='last',
     file_path=f"sub_projects/slab/sintetic_slab_pressure/T_{temp}/omega_{omega}/rho_{rho}_1"
 
     if time == 'last':
-        # print(f"{file_path}/Trj/")
-        # print(glob(f"{file_path}/Trj/xyz.dump.*"))
         time = max([int(f.split('.')[-1]) for f in glob(f"{file_path}/Trj/xyz.dump.*")])   
-
+    elif time < 0:
+            time_array = sorted([int(f.split('.')[-1]) for f in glob(f"{file_path}/Trj/xyz.dump.*")])[time:]
+            for t in time_array:
+                iter_fig, iter_ax = plot_slab_configuration(temp, omega, rho, t, hexatic, dspl, save, print_params)
+                if t == time_array[-1]:
+                    return iter_fig, iter_ax
+                plt.close(iter_fig)
+        
     print("Elaborating image at time: ", time)
     
     sim_box = Box()
@@ -279,8 +391,63 @@ def plot_params(ax, N, temp, omega, rho, time):
         f"$t = {int(time * LJ_TIMESTEP)}$",
         transform=ax.transAxes, fontsize=5)
 
+def extract_params_from_path(filepath: str) -> Tuple[int, float, float, float]:
+    """
+    Extract the parameters from a file path.
+
+    Parameters
+    ----------
+    filepath : str
+        The path to the file.
+
+    Returns
+    -------
+    N : int
+        Number of particles in the system.
+    temp : float
+        Temperature of the system.
+    omega : float
+        Frequency of the chiral force.
+    rho : float
+        Density of the system.
+    time : int
+        Time at which to compute the local hexatic order parameter.
+
+    """
+
+    N = int(filepath.split('/')[find_param_index_in_path(filepath, 'N_')].split('_')[1])
+    temp = float(filepath.split('/')[find_param_index_in_path(filepath, 'T_')].split('_')[1])
+    omega = float(filepath.split('/')[find_param_index_in_path(filepath, 'omega_')].split('_')[1])
+    rho = float(filepath.split('/')[find_param_index_in_path(filepath, 'rho_')].split('_')[1])
+
+    return N, temp, omega, rho
 
 
-if __name__ == "__main__":
-    # plot_configuration(262144, 0.35, 3.0, 0.700, time=30_000_000, save=True, figsize=(2.0,2.0), print_params=True)
-    plot_slab_configuration(0.35, 3.0, 0.324, time='last', save=True, print_params=True, hexatic=False)
+def find_param_index_in_path(filepath: str, param: str) -> int:
+    """
+    Find the index of a parameter in a file path.
+
+    Parameters
+    ----------
+    filepath : str
+        The path to the file.
+    param : str
+        The parameter to find.
+
+    Returns
+    -------
+    index : int
+        The index of the parameter in the file path.
+
+    """
+
+    list = filepath.split('/')
+    # check partial matching pattern 'rho_*' in list
+    # and extract the index of the first match
+    try:
+        index = next(i for i, s in enumerate(list) if param in s)
+    except StopIteration:
+        print("No rho parameter found in path.")
+        exit()
+
+    return index
