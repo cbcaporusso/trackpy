@@ -15,13 +15,14 @@ from matplotlib.collections import EllipseCollection
 
 from src.traj.box import Box
 from src.utils import compute_local_hexatic, extract_params_from_path
+from src.confs import Conf
 
 LJ_TIMESTEP = 0.01
 
 # TODO: use setuptools to install the package and import it
 
 # TODO add all the mode and hexatic part
-def plot_configuration(N, temp, omega, rho, time='last', save=False, 
+def plot_configuration(N, temp, omega, rho, time: int, pmap, save=False,
                     figsize=(2.0,2.0), print_params=False):
     """
     Plot the configuration of the system at a given time.
@@ -55,35 +56,36 @@ def plot_configuration(N, temp, omega, rho, time='last', save=False,
     ax : matplotlib.axes.Axes
         The axes object.
     """
-    # Load the data.
 
-    rho = f"{rho:.3f}"
+    conf = Conf(N, temp, omega, rho)
 
-    file_path=f"N_{N}/sigma_5.0/omega_{omega}/T_{temp}/rho_{rho}_1"
+    if not isinstance(time, int):
+        raise ValueError("time must be an integer")
 
-    if time == 'last':
-        time = max([int(f.split('.')[-1]) for f in glob(f"{file_path}/Trj/xyz.dump.*")])   
-    elif time < 0:
-        time_array = sorted([int(f.split('.')[-1]) for f in glob(f"{file_path}/Trj/xyz.dump.*")])[time:]
+    if time < 0:
+        time_array = conf.find_configuration_times(last_vals=time)
+        
         for t in time_array:
             iter_fig, iter_ax = plot_configuration(N, temp, omega, rho, t, save, figsize, print_params)
+            
             if t == time_array[-1]:
                 return iter_fig, iter_ax
+            
             plt.close(iter_fig)
 
     print("Elaborating image at time: ", time)
 
     if not isinstance(time, int) and time != 'last':
-        raise ValueError("time must be an integer or 'last'")
+        raise ValueError("time must be an integer")
 
     sim_box = Box() 
-    sim_box.read_box_size_from_file(f"{file_path}/Trj/xyz.dump.{time}")
+    sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time))
 
-    if not os.path.exists(f"{file_path}/local_hexatic/xyz.dump.{time}.hexatic"):
+    if not os.path.exists(conf.filepath(sub="hexatic", time=time)):
         print("No hexatic data found for the specified time, computing now...")
-        compute_local_hexatic(file_path, time)
+        compute_local_hexatic(conf, time)
         
-    data = np.loadtxt(f"{file_path}/local_hexatic/xyz.dump.{time}.hexatic")
+    data = np.loadtxt(conf.filepath(sub="hexatic", time=time))
     
     pos         = data[:,[1,2]]
     psi6_re     = data[:,4]
@@ -91,7 +93,9 @@ def plot_configuration(N, temp, omega, rho, time='last', save=False,
     hex_args    = np.arctan2(psi6_im,psi6_re)
 
     # Plot the data.
+    
     fig, ax = plt.subplots(figsize=figsize)
+    
     set_lim(ax, sim_box)
     ec = add_coloured_collection(pos, hex_args, ax)
     
