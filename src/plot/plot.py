@@ -1,21 +1,19 @@
 # import 
 
 import os
-import subprocess
 import sys
 
 sys.path.append('/gpfs/projects/ub35/demian/chiral')
 
 from glob import glob
-from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import EllipseCollection
 
+from src.confs import Conf
 from src.traj.box import Box
 from src.utils import compute_local_hexatic, extract_params_from_path
-from src.confs import Conf
 
 LJ_TIMESTEP = 0.01
 
@@ -78,9 +76,6 @@ def plot_configuration(N, temp, omega, rho, time: int, pmap, save=False,
     if not isinstance(time, int) and time != 'last':
         raise ValueError("time must be an integer")
 
-    sim_box = Box() 
-    sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time))
-
     if not os.path.exists(conf.filepath(sub="hexatic", time=time)):
         print("No hexatic data found for the specified time, computing now...")
         compute_local_hexatic(conf, time)
@@ -95,10 +90,7 @@ def plot_configuration(N, temp, omega, rho, time: int, pmap, save=False,
     # Plot the data.
     
     fig, ax = plt.subplots(figsize=figsize)
-    
-    set_lim(ax, sim_box)
-    ec = add_coloured_collection(pos, hex_args, ax)
-    
+        
     if print_params:
         plot_params(ax, N, temp, omega, rho, time)
 
@@ -317,3 +309,27 @@ def plot_params(ax, N, temp, omega, rho, time):
         transform=ax.transAxes, fontsize=5)
 
 
+def add_configuration(ax, conf: Conf, time, pmap):
+    """
+    Add a configuration to the axes.
+
+    Parameters
+    ----------
+    conf : numpy.ndarray
+        The configuration to plot.
+    ax : matplotlib.axes.Axes
+        The axes object.
+
+    Returns
+    -------
+    None
+
+    """
+
+    sim_box = Box() 
+    sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time))
+    pos = conf.load_configuration(time)
+
+    set_lim(ax, sim_box)
+    ec = add_coloured_collection(pos, pmap, ax)
+    
