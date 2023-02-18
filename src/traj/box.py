@@ -37,14 +37,3 @@ class Box:
 
     def update(self):
         self.L = np.array([self.lx,self.ly])
-
-def distance_pbc(x0, x1, L)->np.ndarray:
-    ''' Computes the distances using periodic boundary
-    conditions (PBC)'''
-    delta = x0 - x1
-    delta = np.where(delta > 0.5 * L, delta - L, delta)
-    delta = np.where(delta < - 0.5 * L, delta + L, delta)
-    return delta
-
-def norm(x: np.ndarray)->float:
-    return np.sqrt((x ** 2).sum(axis=-1))
