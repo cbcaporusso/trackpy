@@ -1,7 +1,18 @@
 import numpy as np 
 
 class Box:
+    """
+    Class to store the size of the simulation box
 
+
+    Methods
+    -------
+    read_box_size_from_file(filename)
+        read the size of the simulation box from a file given as a parameter
+
+
+    """
+    
     def __init__(self) -> None:
         lx : float
         ly : float 
