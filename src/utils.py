@@ -1,6 +1,7 @@
 from typing import Tuple
 import numpy as np
 
+
 def extract_params_from_path(filepath: str) -> Tuple[int, float, float, float]:
     """
     Extract the parameters from a file path.
@@ -32,6 +33,7 @@ def extract_params_from_path(filepath: str) -> Tuple[int, float, float, float]:
 
     return N, temp, omega, rho
 
+
 def _find_param_index_in_path(filepath: str, param: str) -> int:
     """
     Find the index of a parameter in a file path.
@@ -61,7 +63,8 @@ def _find_param_index_in_path(filepath: str, param: str) -> int:
 
     return index
 
-def distance_pbc(x0, x1, L)->np.ndarray:
+
+def distance_pbc(x0, x1, L) -> np.ndarray:
     ''' Computes the distances using periodic boundary
     conditions (PBC)'''
     delta = x0 - x1
@@ -69,5 +72,6 @@ def distance_pbc(x0, x1, L)->np.ndarray:
     delta = np.where(delta < - 0.5 * L, delta + L, delta)
     return delta
 
-def norm(x: np.ndarray)->float:
+
+def norm(x: np.ndarray) -> float:
     return np.sqrt((x ** 2).sum(axis=-1))
