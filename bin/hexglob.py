@@ -1,10 +1,9 @@
 import numpy as np
-import os, sys
+import os
 
-from src.confs import Conf
-
-from src.misc.hexatic import (
-    compute_local_hexatic, global_hex_parameter, global_hex_modulus)
+from lib.confs import Conf
+from lib.misc.hexatic import (
+    compute_local_hexatic, global_hex_modulus)
 
 if __name__ == "__main__":
 
@@ -21,7 +20,7 @@ if __name__ == "__main__":
             if not os.path.isfile(conf.filepath(sub="hexatic", time=time)):
                 print("No hexatic data found for the specified time, computing now...")
                 compute_local_hexatic(conf.filepath(), time)
-            
+
             pos, hex_data = conf.load_hexatic(time)
             glob_psi6 = global_hex_modulus(hex_data)
             glob_array.append(glob_psi6)
