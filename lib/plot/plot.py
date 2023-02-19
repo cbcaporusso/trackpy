@@ -4,9 +4,11 @@ import sys
 import numpy as np
 
 from matplotlib.collections import EllipseCollection
-from lib.confs import Conf
-from lib.traj.box import Box
+from confs import Conf
+from traj.box import Box
 #from lib.utils import compute_local_hexatic, extract_params_from_path
+
+from misc.hexatic import global_hex_parameter
 
 sys.path.append('/gpfs/projects/ub35/demian/chiral')
 
@@ -53,21 +55,70 @@ def plot_configuration(conf: Conf, time, ax):
         raise ValueError("time must be a positive integer")
       
     pos = conf.load_configuration(time)
-    ec = add_configuration(ax, pos, time, np.ones(pos.shape[0]))
+    
+    sim_box = Box() 
+    sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time)) 
+    set_lim(ax, sim_box)
+    
+    ec = add_coloured_collection(pos, np.ones(pos.shape[0]), ax)
     
     return ec
      
 
-def plot_hexatic_configuration(conf: Conf, time, ax):
+def plot_hexatic_arg(conf: Conf, time, ax):
 
     if not isinstance(time, int) or time < 0:
         raise ValueError("time must be a positive integer")
     
     pos, psi6 = conf.load_hexatic(time)
-    ec = add_configuration(ax, pos, time, psi6)
-
+    
+    sim_box = Box() 
+    sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time))
+    set_lim(ax, sim_box)
+    
+    ec = add_coloured_collection(pos, np.tanh(psi6[1], psi6[0]), ax)
+    ec.set_cmap('hsv')
+    
     return ec
 
+
+def plot_hexatic_mod(conf: Conf, time, ax):
+
+    if not isinstance(time, int) or time < 0:
+        raise ValueError("time must be a positive integer")
+    
+    pos, psi6 = conf.load_hexatic(time)
+    
+    sim_box = Box() 
+    sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time))
+    set_lim(ax, sim_box)
+    
+    ec = add_coloured_collection(pos, np.sqrt(psi6[0]**2 + psi6[1]**2), ax)
+    ec.set_cmap('jet')
+    
+    return ec
+
+def plot_hexatic_proj(conf: Conf, time, ax):
+
+    if not isinstance(time, int) or time < 0:
+        raise ValueError("time must be a positive integer")
+    
+    pos, psi6 = conf.load_hexatic(time)
+    
+    sim_box = Box() 
+    sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time))
+    set_lim(ax, sim_box)
+
+    # here we compute the projection 
+    psi6_glob = global_hex_parameter(psi6)
+    psi6_proj = psi6_glob[0] * psi6[:,0] + psi6_glob[1] * psi6[:,1]
+    psi6_proj /= np.sqrt(psi6_glob[0] ** 2 + psi6_glob[1] ** 2)
+    psi6_proj /= np.sqrt(psi6[:,0] ** 2 + psi6[:,1] ** 2)
+    
+    ec = add_coloured_collection(pos, psi6_proj, ax)
+    ec.set_cmap('jet')
+
+    return ec
 
 # def plot_configuration_from_path(file_path, savedir, time='last',  
 #                     mode='hexatic', figsize=(2.0,2.0), print_params=False):
@@ -134,7 +185,6 @@ def add_coloured_collection(pos, cmap, ax):
         transOffset=ax.transData)
 
     ec.set_alpha(0.50)
-    ec.set_cmap('hsv')
     ec.set_array(cmap)
     ax.add_collection(ec)
     
@@ -177,7 +227,7 @@ def plot_params(ax, N, temp, omega, rho, time):
         transform=ax.transAxes, fontsize=5)
 
 
-def add_configuration(ax, conf: Conf, time, pmap):
+def add_configuration(pos, box, time, pmap, ax):
     """
     Add a configuration to the axes.
 
@@ -193,10 +243,6 @@ def add_configuration(ax, conf: Conf, time, pmap):
     None
 
     """
-
-    sim_box = Box() 
-    sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time))
-    pos = conf.load_configuration(time)
 
     set_lim(ax, sim_box)
     ec = add_coloured_collection(pos, pmap, ax)

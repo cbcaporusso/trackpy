@@ -4,7 +4,7 @@ from glob import glob
 
 import numpy as np
 
-from .misc.hexatic import compute_local_hexatic
+from misc.hexatic import compute_local_hexatic
 
 
 class Subproject(ABC):
@@ -69,11 +69,8 @@ class Subproject(ABC):
             The configuration.
 
         """
-        if not os.path.exists(self.filepath(sub="hexatic", time=time)):
-            print("No hexatic data found for the specified time, computing now...")
-            compute_local_hexatic(self.basepath, time)
 
-        conf_data = np.loadtxt(self.filepath('trj', time))
+        conf_data = np.loadtxt(self.filepath('trj', time), skiprows=9)
         
         if conf_data.shape[1] < 3:
             raise ValueError("Configuration data file has incorrect shape")
@@ -97,6 +94,11 @@ class Subproject(ABC):
             The hexatic data.
 
         """
+
+        if not os.path.exists(self.filepath(sub="hexatic", time=time)):
+            print("No hexatic data found for the specified time, computing now...")
+            compute_local_hexatic(self.basepath, time)
+
         data = np.loadtxt(self.filepath('hexatic', time))
 
         if data.shape[1] < 6:
