@@ -2,7 +2,7 @@ import os
 import numpy as np
 from glob import glob
 from misc.hexatic import compute_local_hexatic
-from _subprojects import Subproject
+from lib.proj._projects import Subproject
 
 # TODO: we could include the box class here
 

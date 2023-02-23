@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-from lib.confs import Conf
+from lib.proj.chiral import Conf
 from lib.misc.hexatic import (
     compute_local_hexatic, global_hex_modulus)
 

@@ -4,7 +4,7 @@ import sys
 import numpy as np
 
 from matplotlib.collections import EllipseCollection
-from confs import Conf
+from lib.proj.chiral import Conf
 from traj.box import Box
 #from lib.utils import compute_local_hexatic, extract_params_from_path
 
