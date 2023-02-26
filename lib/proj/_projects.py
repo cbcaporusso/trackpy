@@ -153,7 +153,7 @@ class Subproject(ABC):
         return pos, dspl
 
     @staticmethod
-    def folder_structure(sub: str, time=None):
+    def folder_structure(sub: str = None, time : int = None):
         """
         Return the folder structure for the subproject.
         This is the standard folder structure, if subclasses
@@ -173,7 +173,6 @@ class Subproject(ABC):
             The folder structure for the subproject.
 
         """
-
 
         if sub == "trj":
             out_dir = "/Trj/"
@@ -196,3 +195,6 @@ class Subproject(ABC):
                 return out_dir + f"xyz.dump.{time}.dspl"
             else:
                 return out_dir
+            
+        if sub == None:
+            return out_dir
