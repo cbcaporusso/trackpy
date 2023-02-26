@@ -5,7 +5,10 @@ from glob import glob
 import numpy as np
 
 from misc.hexatic import compute_local_hexatic
+from misc.displacement import compute_displacement
+from utils.lammps import lammps_header_parser
 
+# TODO - add an autmated way to find the indexes
 
 class Subproject(ABC):
     """
@@ -75,7 +78,10 @@ class Subproject(ABC):
         if conf_data.shape[1] < 3:
             raise ValueError("Configuration data file has incorrect shape")
 
-        pos = conf_data[:, [1, 2]]
+        pos_index = [lammps_header_parser(self.filepath('trj', time), "x"),
+                     lammps_header_parser(self.filepath('trj', time), "y")]
+        
+        pos = conf_data[:, pos_index]
         
         return pos
 
@@ -109,3 +115,84 @@ class Subproject(ABC):
 
         return pos, psi6
 
+    def load_displacement(self, time, dspl_dt):
+        """
+        Load the displacement data for a given time.
+
+        Parameters
+        ----------
+        time : int
+            The time at which to load the displacement data.
+        dspl_dt : int
+            The time interval between configurations.
+
+        Returns
+        -------
+        dspl_data : numpy.ndarray
+            The displacement data.
+
+        """
+
+        if not os.path.exists(self.filepath(sub=f"dspl_{dspl_dt}", time=time)):
+            print("No displacement data found for the specified time, computing now...")
+            compute_displacement(self.basepath, dspl_dt, time)
+
+        data = np.loadtxt(self.filepath(f"dspl_{dspl_dt}", time), skiprows=9)
+
+        if data.shape[1] < 4:
+            raise ValueError("Displacement data file has incorrect shape")
+
+        pos_index = [lammps_header_parser(self.filepath(f'dspl_{dspl_dt}', time), "x"),
+                     lammps_header_parser(self.filepath(f'dspl_{dspl_dt}', time), "y")]
+        vel_index = [lammps_header_parser(self.filepath(f'dspl_{dspl_dt}', time), "vx"),
+                     lammps_header_parser(self.filepath(f'dspl_{dspl_dt}', time), "vy")]
+
+        pos = data[:, pos_index]
+        dspl = data[:, vel_index]
+
+        return pos, dspl
+
+    @staticmethod
+    def folder_structure(sub: str, time=None):
+        """
+        Return the folder structure for the subproject.
+        This is the standard folder structure, if subclasses
+        have a different folder structure, this method should
+        be overwritten.
+
+        Parameters
+        ----------
+        sub : str
+            The subfolder to return the folder structure for.
+        time : int, optional
+            The time of the configuration.
+
+        Returns
+        -------
+        out_dir : str
+            The folder structure for the subproject.
+
+        """
+
+
+        if sub == "trj":
+            out_dir = "/Trj/"
+            if time is not None:
+                return out_dir + f"xyz.dump.{time}"
+            else:
+                return out_dir
+
+        if sub == "hexatic":
+            out_dir = "/local_hexatic/"
+            if time is not None:
+                return out_dir + f"xyz.dump.{time}.hexatic"
+            else:
+                return out_dir
+
+        if "dspl_" in sub:
+            dt_dspl = sub.split("_")[1]
+            out_dir = f"/Dspl_dt_{dt_dspl}/"
+            if time is not None:
+                return out_dir + f"xyz.dump.{time}.dspl"
+            else:
+                return out_dir
