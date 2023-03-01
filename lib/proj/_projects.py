@@ -181,20 +181,23 @@ class Subproject(ABC):
             else:
                 return out_dir
 
-        if sub == "hexatic":
+        elif sub == "hexatic":
             out_dir = "/local_hexatic/"
             if time is not None:
                 return out_dir + f"xyz.dump.{time}.hexatic"
             else:
                 return out_dir
 
-        if "dspl_" in sub:
+        elif sub == None:
+            return ''
+
+        elif isinstance(sub, str) and "dspl_" in sub:
             dt_dspl = sub.split("_")[1]
             out_dir = f"/Dspl_dt_{dt_dspl}/"
             if time is not None:
                 return out_dir + f"xyz.dump.{time}.dspl"
             else:
                 return out_dir
-            
-        if sub == None:
-            return out_dir
+
+        else:
+            raise ValueError("Unknown subproject")    
