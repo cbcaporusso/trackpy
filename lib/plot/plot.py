@@ -8,6 +8,7 @@ from lib.proj.chiral import Conf
 from traj.box import Box
 #from lib.utils import compute_local_hexatic, extract_params_from_path
 
+from statistic import cg_field_to_cells
 from misc.hexatic import global_hex_parameter
 
 sys.path.append('/gpfs/projects/ub35/demian/chiral')
@@ -184,7 +185,7 @@ def add_coloured_collection(pos, cmap, ax):
         1, 1, 0, units='xy', offsets=pos,
         transOffset=ax.transData)
 
-    ec.set_alpha(0.50)
+    #ec.set_alpha(0.50)
     ec.set_array(cmap)
     ax.add_collection(ec)
     
@@ -248,4 +249,32 @@ def add_configuration(pos, box, time, pmap, ax):
     ec = add_coloured_collection(pos, pmap, ax)
 
     return ec
+
+def plot_droplet(ax, conf: Conf, time, dspl):
+    """"""
+
+    pos, displ = conf.load_displacement(time, dspl)
+    
+    # sim_box = Box.from_dump(conf.filepath(sub="trj", time=time))
+    # set_lim(ax, sim_box)
+
+    ec = add_coloured_collection(pos, np.sqrt(displ[:,0]**2 + displ[:,1]**2), ax)
+    
+    return ec
+
+def plot_droplet_with_disp_field(ax, conf: Conf, time, dspl, cell_size = 2.5, scale=0.05):
+    """"""
+
+    pos, displ = conf.load_displacement(time, dspl)
+    
+    # sim_box = Box.from_dump(conf.filepath(sub="trj", time=time))
+    # set_lim(ax, sim_box)
+
+    cells, field_x = cg_field_to_cells(pos, cell_size, displ[:,0])
+    cells, field_y = cg_field_to_cells(pos, cell_size, displ[:,1])
+
+    ec = add_coloured_collection(pos, np.sqrt(displ[:,0]**2 + displ[:,1]**2), ax)
+    qs = ax.quiver(cells[:,0], cells[:,1], field_x, field_y, scale=scale, color='black')
+
+    return ec, qs 
     
