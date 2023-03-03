@@ -1,5 +1,5 @@
 import numpy as np 
-from utils.lammps import lammps_boxsize_parser
+from lib.utils.lammps import lammps_boxsize_parser
 
 # In future this class should be changed.
 # The box size should be a 4 element array,
@@ -26,12 +26,9 @@ class Box:
 
         self.L = np.array([lx, ly])
         
-
     def __str__(self) -> str:
         return f"lx = {self.lx}, ly = {self.ly}"
 
-
-    # TODO: we could also add a method to read the box size from a a subproject object
     @staticmethod
     def from_dump(filename: str) -> None:
         """
@@ -51,7 +48,6 @@ class Box:
 
         lx, ly = lammps_boxsize_parser(filename)
         return Box(lx, ly)
-
 
     def distance_pbc(self, x0, x1) -> np.ndarray:
         """
@@ -75,7 +71,25 @@ class Box:
         delta = np.where(delta > 0.5 * self.L, delta - self.L, delta)
         delta = np.where(delta < - 0.5 * self.L, delta + self.L, delta)
         return delta
+    
+    def isinbox(self, pos: list):
+        """
+        Check if a point is inside the box.
 
+        Parameters
+        ----------
+        pos : list
+            The position of the point.
+
+        Returns
+        -------
+        bool
+            True if the point is inside the box, False otherwise.
+
+        """
+
+        return (pos[0] >= 0 and pos[0] < self.lx) and \
+            (pos[1] >= 0 and pos[1] < self.ly)
 
     @staticmethod
     def norm(x: np.ndarray) -> float:
@@ -95,3 +109,31 @@ class Box:
         """
 
         return np.sqrt((x ** 2).sum(axis=-1))
+
+    @property
+    def center(self):
+        """
+        Compute the center of the box.
+
+        Returns
+        -------
+        center : np.ndarray
+            The center of the box.
+
+        """
+
+        return self.L / 2
+    
+    @property
+    def volume(self):
+        """
+        Compute the volume of the box.
+
+        Returns
+        -------
+        volume : float
+            The volume of the box.
+
+        """
+
+        return self.lx * self.ly
