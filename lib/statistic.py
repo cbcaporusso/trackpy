@@ -44,6 +44,7 @@ import numpy as np
 
 # import numpy as np
 
+
 def cg_field_to_cells(pos: np.ndarray, cell_size: float, quantity):
     """
     Compute the coarse-grained field from a field defined on a set of particles.

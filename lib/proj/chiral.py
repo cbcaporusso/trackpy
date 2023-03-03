@@ -50,6 +50,7 @@ class Conf(Subproject):
             f"N_{self.npart}/sigma_5.0/omega_{self.omega}/T_{self.temp}/rho_{self.rho}_1"
         return base_dir+super().folder_structure(sub, time)
 
+
 class Disordered(Subproject):
     """
     A class to represent a configuration of particles.
@@ -93,6 +94,7 @@ class Disordered(Subproject):
                     f"omega_{self.omega}/T_{self.temp}/rho_{self.rho}_1")
         return base_dir+super().folder_structure(sub, time)
 
+
 class Slab(Subproject):
     def __init__(self, temp, omega, rho):
         """
@@ -127,6 +129,7 @@ class Slab(Subproject):
         base_dir = (f"sub_projects/slab/sintetic_slab_pressure/"
                     f"T_{self.temp}/omega_{self.omega}/rho_{self.rho}_1")
         return base_dir+super().folder_structure(sub, time)
+
 
 class Droplet(Subproject):
     def __init__(self, temp, omega, rho):
