@@ -4,9 +4,9 @@ from glob import glob
 
 import numpy as np
 
-from misc.hexatic import compute_local_hexatic
-from misc.displacement import compute_displacement
-from lib.utils.lammps import lammps_header_parser
+from ..misc.hexatic import compute_local_hexatic
+from ..misc.displacement import compute_displacement
+from ..utils.lammps import lammps_header_parser
 
 # TODO - add an autmated way to find the indexes
 

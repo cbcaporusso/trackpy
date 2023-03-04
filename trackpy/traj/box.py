@@ -1,5 +1,5 @@
 import numpy as np 
-from lib.utils.lammps import lammps_boxsize_parser
+from ..utils.lammps import lammps_boxsize_parser
 
 # In future this class should be changed.
 # The box size should be a 4 element array,

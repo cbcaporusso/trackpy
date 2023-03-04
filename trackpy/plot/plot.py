@@ -4,12 +4,12 @@ import sys
 import numpy as np
 
 from matplotlib.collections import EllipseCollection
-from lib.proj.chiral import Conf
-from traj.box import Box
+from ..proj.chiral import Conf
+from ..traj.box import Box
 #from lib.utils import compute_local_hexatic, extract_params_from_path
 
-from statistic import cg_field_to_cells
-from misc.hexatic import global_hex_parameter
+from ..statistic import cg_field_to_cells
+from ..misc.hexatic import global_hex_parameter
 
 sys.path.append('/gpfs/projects/ub35/demian/chiral')
 
