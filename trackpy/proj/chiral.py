@@ -162,5 +162,5 @@ class Droplet(Subproject):
         self.rho = f"{rho:.3f}"
 
     def filepath(self, sub=None, time=None):
-        base_dir = (f"droplet/data/N_{self.npart}/omega_{self.omega}/T_{self.temp}/rho_{self.rho}")
+        base_dir = (f"droplet/data/omega_{self.omega}/T_{self.temp}/rho_{self.rho}")
         return base_dir+super().folder_structure(sub, time)
