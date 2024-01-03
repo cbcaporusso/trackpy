@@ -4,3 +4,4 @@
 dist
 trackpy.egg-info
 examples
+*.pyc
