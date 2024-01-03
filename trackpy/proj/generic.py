@@ -1,4 +1,3 @@
-import os
 from ._projects import Subproject
 
 

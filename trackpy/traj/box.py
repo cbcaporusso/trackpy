@@ -1,11 +1,12 @@
-import numpy as np 
+import numpy as np
 from ..utils.lammps import lammps_boxsize_parser
 
 # In future this class should be changed.
 # The box size should be a 4 element array,
 # representing the simulation box
-# TODO: 
+# TODO:
 # - change initializer to account for the 4 element array
+
 
 class Box:
     """
@@ -19,13 +20,13 @@ class Box:
 
 
     """
-    
+
     def __init__(self, lx, ly) -> None:
-        self.lx = lx 
-        self.ly = ly  
+        self.lx = lx
+        self.ly = ly
 
         self.L = np.array([lx, ly])
-        
+
     def __str__(self) -> str:
         return f"lx = {self.lx}, ly = {self.ly}"
 
@@ -66,12 +67,12 @@ class Box:
             The distance between the two points.
 
         """
-        
+
         delta = x0 - x1
         delta = np.where(delta > 0.5 * self.L, delta - self.L, delta)
-        delta = np.where(delta < - 0.5 * self.L, delta + self.L, delta)
+        delta = np.where(delta < -0.5 * self.L, delta + self.L, delta)
         return delta
-    
+
     def isinbox(self, pos: list):
         """
         Check if a point is inside the box.
@@ -89,26 +90,26 @@ class Box:
         """
 
         return (pos[0] >= 0 and pos[0] < self.lx) and \
-            (pos[1] >= 0 and pos[1] < self.ly)
+               (pos[1] >= 0 and pos[1] < self.ly)
 
     @staticmethod
     def norm(x: np.ndarray) -> float:
         """
         Compute the norm of a vector.
-        
+
         Parameters
         ----------
         x : np.ndarray
             The vector.
-        
+
         Returns
         -------
         norm : float
             The norm of the vector.
-        
+
         """
 
-        return np.sqrt((x ** 2).sum(axis=-1))
+        return np.sqrt((x**2).sum(axis=-1))
 
     @property
     def center(self):
@@ -123,7 +124,7 @@ class Box:
         """
 
         return self.L / 2
-    
+
     @property
     def volume(self):
         """

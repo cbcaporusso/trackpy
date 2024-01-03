@@ -49,14 +49,16 @@ class Subproject(ABC):
         """
 
         if isinstance(last_vals, str) and last_vals == "*":
-            return sorted([int(f.split('.')[-1])
-                           for f in glob(self.filepath('trj', '*'))])
+            return sorted(
+                [int(f.split(".")[-1]) for f in glob(self.filepath("trj", "*"))]
+            )
 
         if isinstance(last_vals, int):
             if last_vals > 0:
                 raise ValueError("lastvals must be negative or *")
-            return sorted([int(f.split('.')[-1])
-                           for f in glob(self.filepath('trj', '*'))])[last_vals:]   
+            return sorted(
+                [int(f.split(".")[-1]) for f in glob(self.filepath("trj", "*"))]
+            )[last_vals:]
 
     def load_configuration(self, time):
         """
@@ -74,16 +76,18 @@ class Subproject(ABC):
 
         """
 
-        conf_data = np.loadtxt(self.filepath('trj', time), skiprows=9)
-        
+        conf_data = np.loadtxt(self.filepath("trj", time), skiprows=9)
+
         if conf_data.shape[1] < 3:
             raise ValueError("Configuration data file has incorrect shape")
 
-        pos_index = [lammps_header_parser(self.filepath('trj', time), "x"),
-                     lammps_header_parser(self.filepath('trj', time), "y")]
-        
+        pos_index = [
+            lammps_header_parser(self.filepath("trj", time), "x"),
+            lammps_header_parser(self.filepath("trj", time), "y"),
+        ]
+
         pos = conf_data[:, pos_index]
-        
+
         return pos
 
     def load_hexatic(self, time):
@@ -103,10 +107,14 @@ class Subproject(ABC):
         """
 
         if not os.path.exists(self.filepath(sub="hexatic", time=time)):
-            print("No hexatic data found for the specified time, computing now...")
+            print('''
+                  No hexatic data found
+                  for the specified time,
+                  computing now...
+                  ''')
             compute_local_hexatic(self.basepath, time)
 
-        data = np.loadtxt(self.filepath('hexatic', time))
+        data = np.loadtxt(self.filepath("hexatic", time))
 
         if data.shape[1] < 6:
             raise ValueError("Hexatic data file has incorrect shape")
@@ -135,7 +143,11 @@ class Subproject(ABC):
         """
 
         if not os.path.exists(self.filepath(sub=f"dspl_{dspl_dt}", time=time)):
-            print("No displacement data found for the specified time, computing now...")
+            print('''
+                  No displacement data
+                  found for the specified time,
+                  computing now...
+                  ''')
             compute_displacement(self.basepath, dspl_dt, time)
 
         data = np.loadtxt(self.filepath(f"dspl_{dspl_dt}", time), skiprows=9)
@@ -143,10 +155,14 @@ class Subproject(ABC):
         if data.shape[1] < 4:
             raise ValueError("Displacement data file has incorrect shape")
 
-        pos_index = [lammps_header_parser(self.filepath(f'dspl_{dspl_dt}', time), "x"),
-                     lammps_header_parser(self.filepath(f'dspl_{dspl_dt}', time), "y")]
-        vel_index = [lammps_header_parser(self.filepath(f'dspl_{dspl_dt}', time), "vx"),
-                     lammps_header_parser(self.filepath(f'dspl_{dspl_dt}', time), "vy")]
+        pos_index = [
+            lammps_header_parser(self.filepath(f"dspl_{dspl_dt}", time), "x"),
+            lammps_header_parser(self.filepath(f"dspl_{dspl_dt}", time), "y"),
+        ]
+        vel_index = [
+            lammps_header_parser(self.filepath(f"dspl_{dspl_dt}", time), "vx"),
+            lammps_header_parser(self.filepath(f"dspl_{dspl_dt}", time), "vy"),
+        ]
 
         pos = data[:, pos_index]
         dspl = data[:, vel_index]
@@ -154,7 +170,7 @@ class Subproject(ABC):
         return pos, dspl
 
     @staticmethod
-    def folder_structure(sub: str = None, time : int = None):
+    def folder_structure(sub: str = None, time: int = None):
         """
         Return the folder structure for the subproject.
         This is the standard folder structure, if subclasses
@@ -189,8 +205,8 @@ class Subproject(ABC):
             else:
                 return out_dir
 
-        elif sub == None:
-            return ''
+        elif sub is None:
+            return ""
 
         elif isinstance(sub, str) and "dspl_" in sub:
             dt_dspl = sub.split("_")[1]
@@ -201,4 +217,4 @@ class Subproject(ABC):
                 return out_dir
 
         else:
-            raise ValueError("Unknown subproject")    
+            raise ValueError("Unknown subproject")
