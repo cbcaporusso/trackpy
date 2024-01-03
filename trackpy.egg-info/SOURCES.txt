@@ -1,0 +1,7 @@
+LICENSE.md
+README.md
+setup.py
+trackpy.egg-info/PKG-INFO
+trackpy.egg-info/SOURCES.txt
+trackpy.egg-info/dependency_links.txt
+trackpy.egg-info/top_level.txt

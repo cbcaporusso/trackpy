@@ -1,0 +1,14 @@
+Metadata-Version: 2.1
+Name: trackpy
+Version: 0.0.1
+Summary: UNKNOWN
+Home-page: UNKNOWN
+License: UNKNOWN
+Platform: UNKNOWN
+Requires: numpy
+Requires: matplotlib
+Requires: scipy
+License-File: LICENSE.md
+
+UNKNOWN
+
