@@ -1,5 +1,5 @@
 from typing import List
-from src.interface import ReadInterface
+from interface import ReadInterface
 import numpy as np
 import os
 
