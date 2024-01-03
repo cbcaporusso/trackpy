@@ -1,10 +1,18 @@
 #!/bin/bash
 
-FILE_PATH=$1
-TIME=$2
+SCRIPT_PATH=$1
+FILE_PATH=$2
+TIME=$3
 
 curr_dir=`pwd` 
-vor_dir="/home/ub35/ub35873/voro++-0.4.6/src" ### questa è la dir con l'eseguibile voro++ ###
+
+# check if voro++ is installed
+if ! command -v voro++ &> /dev/null
+then
+	echo "voro++ could not be found"
+	echo "Please install voro++ and try again"
+	exit
+fi
 
 echo $FILE_PATH $TIME
 cd "$FILE_PATH" || exit 
@@ -41,9 +49,9 @@ do
 
 		awk < Trj/${conf} '{if(NR>=10) print $1,$2,$3,'0.0'}' > conf
 
-		${vor_dir}/voro++ -c "%i %x %y %v %n" -o -px -py  0 $sizeX 0 $sizeY -0.5 0.5 conf
+		voro++ -c "%i %x %y %v %n" -o -px -py  0 $sizeX 0 $sizeY -0.5 0.5 conf
 
-		awk < conf.vol -v L=$size -f $curr_dir/elaborate.awk > local_hexatic/${conf}.hexatic
+		awk < conf.vol -v L=$size -f $SCRIPT_PATH/elaborate.awk > local_hexatic/${conf}.hexatic
 		#rm elaborate.awk conf conf.vol
 
 	fi
