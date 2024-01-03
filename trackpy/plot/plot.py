@@ -6,17 +6,19 @@ import numpy as np
 from matplotlib.collections import EllipseCollection
 from ..proj.chiral import Conf
 from ..traj.box import Box
-#from lib.utils import compute_local_hexatic, extract_params_from_path
+
+# from lib.utils import compute_local_hexatic, extract_params_from_path
 
 from ..statistic import cg_field_to_cells
 from ..misc.hexatic import global_hex_parameter
 
-sys.path.append('/gpfs/projects/ub35/demian/chiral')
+sys.path.append("/gpfs/projects/ub35/demian/chiral")
 
 LJ_TIMESTEP = 0.01
 
 # TODO: use setuptools to install the package and import it
 # TODO add all the mode and hexatic part
+
 
 def plot_configuration(conf: Conf, time, ax):
     """
@@ -36,14 +38,14 @@ def plot_configuration(conf: Conf, time, ax):
         Time at which to plot the configuration. If 'last' (default),
         the last time step is used.
     save : str or bool, optional
-        If False (default) do not save a png of the configuration. 
+        If False (default) do not save a png of the configuration.
         If True, save the plot to the default file location. If a string,
         save the plot to the specified file location.
     figsize : tuple, optional
         The size of the figure in inches. Default is (2.0,2.0).
     print_params : bool, optional
         If True, print the parameters of the simulation in the plot. Default is False.
-    
+
     Returns
     -------
     fig : matplotlib.figure.Figure
@@ -54,74 +56,73 @@ def plot_configuration(conf: Conf, time, ax):
 
     if not isinstance(time, int) or time < 0:
         raise ValueError("time must be a positive integer")
-      
+
     pos = conf.load_configuration(time)
-    
-    sim_box = Box() 
-    sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time)) 
+
+    sim_box = Box.from_dump(conf.filepath(sub="trj", time=time))
+    # sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time))
     set_lim(ax, sim_box)
-    
+
     ec = add_coloured_collection(pos, np.ones(pos.shape[0]), ax)
-    
+
     return ec
-     
+
 
 def plot_hexatic_arg(conf: Conf, time, ax):
-
     if not isinstance(time, int) or time < 0:
         raise ValueError("time must be a positive integer")
-    
+
     pos, psi6 = conf.load_hexatic(time)
-    
-    sim_box = Box() 
-    sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time))
+
+    sim_box = Box.from_dump(conf.filepath(sub="trj", time=time))
     set_lim(ax, sim_box)
-    
+
     ec = add_coloured_collection(pos, np.tanh(psi6[1], psi6[0]), ax)
-    ec.set_cmap('hsv')
-    
+    ec.set_cmap("hsv")
+
     return ec
 
 
 def plot_hexatic_mod(conf: Conf, time, ax):
-
     if not isinstance(time, int) or time < 0:
         raise ValueError("time must be a positive integer")
-    
+
     pos, psi6 = conf.load_hexatic(time)
-    
-    sim_box = Box() 
-    sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time))
+
+    sim_box = Box.from_dump(conf.filepath(sub="trj", time=time))
     set_lim(ax, sim_box)
-    
-    ec = add_coloured_collection(pos, np.sqrt(psi6[0]**2 + psi6[1]**2), ax)
-    ec.set_cmap('jet')
-    
+
+    ec = add_coloured_collection(pos, np.sqrt(psi6[0] ** 2 + psi6[1] ** 2), ax)
+    ec.set_cmap("jet")
+
     return ec
 
-def plot_hexatic_proj(conf: Conf, time, ax):
 
+def plot_hexatic_proj(conf: Conf, time, ax, shift=None):
     if not isinstance(time, int) or time < 0:
         raise ValueError("time must be a positive integer")
-    
+
     pos, psi6 = conf.load_hexatic(time)
-    
-    sim_box = Box() 
-    sim_box.read_box_size_from_file(conf.filepath(sub="trj", time=time))
+
+    sim_box = Box.from_dump(conf.filepath(sub="trj", time=time))
     set_lim(ax, sim_box)
 
-    # here we compute the projection 
+    if shift is not None:
+        pos = shift_pos(pos, sim_box, shift)
+    
+    # here we compute the projection
     psi6_glob = global_hex_parameter(psi6)
-    psi6_proj = psi6_glob[0] * psi6[:,0] + psi6_glob[1] * psi6[:,1]
+    psi6_proj = psi6_glob[0] * psi6[:, 0] + psi6_glob[1] * psi6[:, 1]
     psi6_proj /= np.sqrt(psi6_glob[0] ** 2 + psi6_glob[1] ** 2)
-    psi6_proj /= np.sqrt(psi6[:,0] ** 2 + psi6[:,1] ** 2)
-    
+    psi6_proj /= np.sqrt(psi6[:, 0] ** 2 + psi6[:, 1] ** 2)
+
     ec = add_coloured_collection(pos, psi6_proj, ax)
-    ec.set_cmap('jet')
+    ec.set_cmap("jet")
 
     return ec
 
-# def plot_configuration_from_path(file_path, savedir, time='last',  
+
+# def plot_configuration_from_path(file_path, savedir, time='last',
 #                     mode='hexatic', figsize=(2.0,2.0), print_params=False):
 #     """
 #     Plot the configuration of the system at a given time.
@@ -181,14 +182,12 @@ def add_coloured_collection(pos, cmap, ax):
     ax.set_xticks([])
     ax.set_yticks([])
 
-    ec = EllipseCollection(
-        1, 1, 0, units='xy', offsets=pos,
-        transOffset=ax.transData)
+    ec = EllipseCollection(1, 1, 0, units="xy", offsets=pos, transOffset=ax.transData)
 
-    #ec.set_alpha(0.50)
+    # ec.set_alpha(0.50)
     ec.set_array(cmap)
     ax.add_collection(ec)
-    
+
     return ec
 
 
@@ -220,12 +219,20 @@ def compute_coarsegrained_displacement():
 
 
 def plot_params(ax, N, temp, omega, rho, time):
-    ax.text(0.05, 0.92, 
+    ax.text(
+        0.05,
+        0.92,
         f"$N = {N}, \\rho = {rho}, \\omega = {omega}, T = {temp}$",
-        transform=ax.transAxes, fontsize=5)
-    ax.text(0.05, 0.08,
+        transform=ax.transAxes,
+        fontsize=5,
+    )
+    ax.text(
+        0.05,
+        0.08,
         f"$t = {int(time * LJ_TIMESTEP)}$",
-        transform=ax.transAxes, fontsize=5)
+        transform=ax.transAxes,
+        fontsize=5,
+    )
 
 
 def add_configuration(pos, box, time, pmap, ax):
@@ -250,31 +257,63 @@ def add_configuration(pos, box, time, pmap, ax):
 
     return ec
 
+
 def plot_droplet(ax, conf: Conf, time, dspl):
     """"""
 
     pos, displ = conf.load_displacement(time, dspl)
-    
+
     # sim_box = Box.from_dump(conf.filepath(sub="trj", time=time))
     # set_lim(ax, sim_box)
 
-    ec = add_coloured_collection(pos, np.sqrt(displ[:,0]**2 + displ[:,1]**2), ax)
-    
+    ec = add_coloured_collection(pos, np.sqrt(displ[:, 0] ** 2 + displ[:, 1] ** 2), ax)
+
     return ec
 
-def plot_droplet_with_disp_field(ax, conf: Conf, time, dspl, cell_size = 2.5, scale=0.05):
+
+def plot_droplet_with_disp_field(ax, conf: Conf, time, dspl, cell_size=2.5, scale=0.05):
     """"""
 
     pos, displ = conf.load_displacement(time, dspl)
-    
+
     # sim_box = Box.from_dump(conf.filepath(sub="trj", time=time))
     # set_lim(ax, sim_box)
 
-    cells, field_x = cg_field_to_cells(pos, cell_size, displ[:,0])
-    cells, field_y = cg_field_to_cells(pos, cell_size, displ[:,1])
+    cells, field_x = cg_field_to_cells(pos, cell_size, displ[:, 0])
+    cells, field_y = cg_field_to_cells(pos, cell_size, displ[:, 1])
 
-    ec = add_coloured_collection(pos, np.sqrt(displ[:,0]**2 + displ[:,1]**2), ax)
-    qs = ax.quiver(cells[:,0], cells[:,1], field_x, field_y, scale=scale, color='black')
+    ec = add_coloured_collection(pos, np.sqrt(displ[:, 0] ** 2 + displ[:, 1] ** 2), ax)
+    qs = ax.quiver(
+        cells[:, 0], cells[:, 1], field_x, field_y, scale=scale, color="black"
+    )
 
-    return ec, qs 
-    
+    return ec, qs
+
+
+def shift_pos(pos: np.ndarray, box: Box, shift: np.ndarray):
+    """
+    Shift the positions of the particles using the periodic boundary
+    conditions (PBC)
+
+    Parameters
+    ----------
+    pos : numpy.ndarray
+        The positions of the particles.
+    box : box.Box
+        The box object.
+    shift : float
+        The amount to shift the particles by.
+
+    Returns
+    -------
+    pos : numpy.ndarray
+        The shifted positions of the particles.
+
+    """
+
+    l_array = box.L
+
+    pos = pos + shift
+    pos = np.where(pos > l_array, pos - l_array, pos)
+
+    return pos
